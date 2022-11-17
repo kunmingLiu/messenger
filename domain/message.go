@@ -14,16 +14,19 @@ type Message struct {
 	Message   string     `bson:"message" json:"message" validate:"required"`
 }
 
+//go:generate mockgen -destination=../internal/mocks/domain/provider_mock.go -package=domain github.com/kunmingliu/messenger/domain Provider
 type Provider interface {
 	ParseRequest(r *http.Request) (Message, error)
 	SendMessage(msg string) error
 }
 
+//go:generate mockgen -destination=../internal/mocks/domain/repository_mock.go -package=domain github.com/kunmingliu/messenger/domain MessageRepository
 type MessageRepository interface {
 	Insert(ctx context.Context, m *Message) error
 	GetByUserID(ctx context.Context, userIds ...string) (messages *[]Message, err error)
 }
 
+//go:generate mockgen -destination=../internal/mocks/domain/usecase_mock.go -package=domain github.com/kunmingliu/messenger/domain MessageUsecase
 type MessageUsecase interface {
 	Insert(ctx context.Context, m *Message) error
 	ParseRequest(r *http.Request) (Message, error)
