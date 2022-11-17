@@ -28,6 +28,8 @@ func NewMessageHandler(e *gin.Engine, ms domain.MessageUsecase) {
 	messageGroup := e.Group("/messages")
 	messageGroup.GET("", handler.GetMessages)
 	messageGroup.POST("", handler.PostMessages)
+
+	e.POST("/webhook", handler.HandleWebhook)
 }
 
 func (m *MessageHandler) PostMessages(c *gin.Context) {
@@ -89,4 +91,19 @@ func (m *MessageHandler) GetMessages(c *gin.Context) {
 		resp["data"] = *messages
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+func (m *MessageHandler) HandleWebhook(c *gin.Context) {
+	msg, err := m.MessageUsecase.ParseRequest(c.Request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ResponseError{Error: err.Error()})
+		return
+	}
+	ctx := c.Request.Context()
+	err = m.MessageUsecase.Insert(ctx, &msg)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ResponseError{Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, success())
 }
