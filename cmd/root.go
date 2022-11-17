@@ -39,7 +39,7 @@ var rootCmd = &cobra.Command{
 	Long: `The messenger is a http server that integrates Line and MongoDB.
     You can use config, environment variables or CLI flags to set basic configuration to connect to Line and MongoDB.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
+		startServer()
 	},
 }
 
