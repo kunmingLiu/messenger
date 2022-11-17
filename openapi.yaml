@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: Messenger
+  version: 1.0.0
+tags:
+  - name: message
+    description: Operations about message
+paths:
+  /messages:
+    get:
+      tags:
+        - message
+      summary: Get Messages from the database
+      description: Get messages from the database. It providers filter and pagination.
+      operationId: getMessage
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: The numbers of items to return
+        - in: query
+          name: user_id
+          schema:
+            type: string
+          description: Filter specific id of a user and the parameter is allowed to accept multiple values.
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid query params
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - pet
+      summary: Send a new message to the third party service
+      description: Send a new message to the third party service
+      operationId: sendMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageBody"
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid query params
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        offset:
+          type: integer
+          format: int32
+          example: 0
+        limit:
+          type: integer
+          format: int32
+          example: 20
+        total_count:
+          type: integer
+          format: int32
+          example: 10
+        has_next:
+          type: boolean
+    MessageResponse:
+      allOf:
+        - $ref: "#/components/schemas/Pagination"
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: 'ObjectID("637679a05803b5a6c9d7e170")'
+              user_id:
+                type: string
+                example: "U123456"
+              message:
+                type: string
+                example: "text message"
+              created_at:
+                type: string
+                format: date-time
+                example: "2022-11-17T18:12:48.570Z"
+              updated_at:
+                type: string
+                nullable: true
+                format: date-time
+                example: "2022-11-17T18:12:48.570Z"
+    MessageBody:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OK]
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Key: 'Message' Error:Field validation for 'Message' failed on the 'required' tag"
