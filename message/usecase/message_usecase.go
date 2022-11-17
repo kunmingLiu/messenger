@@ -39,9 +39,9 @@ func (m *messageUsecase) Send(msg string) (err error) {
 	return
 }
 
-func (m *messageUsecase) GetByUserID(c context.Context, userID ...string) (messages *[]domain.Message, err error) {
+func (m *messageUsecase) GetByUserID(c context.Context, offset, limit int64, userID ...string) (messages *[]domain.Message, totalCount int64, err error) {
 	ctx, cancel := context.WithTimeout(c, m.contextTimeout)
 	defer cancel()
-	messages, err = m.messageRepo.GetByUserID(ctx, userID...)
+	messages, totalCount, err = m.messageRepo.GetByUserID(ctx, offset, limit, userID...)
 	return
 }

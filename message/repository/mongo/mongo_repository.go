@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type mongoRepository struct {
@@ -30,21 +31,29 @@ func (m *mongoRepository) Insert(ctx context.Context, msg *domain.Message) error
 	return err
 }
 
-func (m *mongoRepository) GetByUserID(ctx context.Context, userID ...string) (*[]domain.Message, error) {
-	conditions := make([]bson.E, 0)
+func (m *mongoRepository) GetByUserID(ctx context.Context, offset, limit int64, userID ...string) (*[]domain.Message, int64, error) {
+	filter := make([]bson.E, 0)
 
 	for _, id := range userID {
-		conditions = append(conditions, bson.E{Key: "user_id", Value: id})
+		filter = append(filter, bson.E{Key: "user_id", Value: id})
 	}
 
-	cursor, err := m.Collection.Find(ctx, conditions)
+	findOptions := options.Find()
+	findOptions.SetSkip(offset)
+	findOptions.SetLimit(limit)
+
+	totalCount, err := m.Collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	cursor, err := m.Collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, 0, err
 	}
 	var messages []domain.Message
 	err = cursor.All(ctx, &messages)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return &messages, nil
+	return &messages, totalCount, nil
 }

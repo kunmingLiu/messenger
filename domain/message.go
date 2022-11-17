@@ -23,7 +23,7 @@ type Provider interface {
 //go:generate mockgen -destination=../internal/mocks/domain/repository_mock.go -package=domain github.com/kunmingliu/messenger/domain MessageRepository
 type MessageRepository interface {
 	Insert(ctx context.Context, m *Message) error
-	GetByUserID(ctx context.Context, userIds ...string) (messages *[]Message, err error)
+	GetByUserID(ctx context.Context, offset, limit int64, userIds ...string) (messages *[]Message, totalCount int64, err error)
 }
 
 //go:generate mockgen -destination=../internal/mocks/domain/usecase_mock.go -package=domain github.com/kunmingliu/messenger/domain MessageUsecase
@@ -31,5 +31,5 @@ type MessageUsecase interface {
 	Insert(ctx context.Context, m *Message) error
 	ParseRequest(r *http.Request) (Message, error)
 	Send(msg string) error
-	GetByUserID(ctx context.Context, userIds ...string) (messages *[]Message, err error)
+	GetByUserID(ctx context.Context, offset, limit int64, userIds ...string) (messages *[]Message, totalCount int64, err error)
 }

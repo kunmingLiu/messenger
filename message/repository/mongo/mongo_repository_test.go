@@ -80,7 +80,7 @@ func Test_mongoRepository_GetByUserID(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 	defer mt.Close()
 
-	mt.Run("get messages by userID", func(mt *mtest.T) {
+	mt.Run("GetByUserID success", func(mt *mtest.T) {
 		messageCollection := mt.Coll
 		ctx := context.Background()
 
@@ -128,21 +128,40 @@ func Test_mongoRepository_GetByUserID(t *testing.T) {
 			t.Errorf("insert2 failed, err: %v", err)
 		}
 
-		mt.AddMockResponses(mtest.CreateCursorResponse(1, "db.message", mtest.FirstBatch, rawData1),
-			mtest.CreateCursorResponse(1, "db.message", mtest.NextBatch, rawData1),
-			mtest.CreateCursorResponse(0, "db.message", mtest.NextBatch))
+		mt.AddMockResponses(
+			mtest.CreateCursorResponse(1, "db.message", mtest.FirstBatch, bson.D{
+				{Key: "n", Value: 2},
+			}),
+
+			mtest.CreateCursorResponse(1, "db.message", mtest.FirstBatch, rawData1),
+			mtest.CreateCursorResponse(1, "db.message", mtest.NextBatch, rawData2),
+			mtest.CreateCursorResponse(0, "db.message", mtest.NextBatch),
+		)
 
 		m := &mongoRepository{
 			DB:         mt.DB,
 			Collection: messageCollection,
 		}
-		messages, err := m.GetByUserID(ctx)
+
+		messages, totalCount, err := m.GetByUserID(ctx, 0, 20)
 		if err != nil {
-			t.Errorf("get failed, err: %v", err)
+			t.Errorf("get messages failed, err: %v", err)
 		}
 
 		if messages == nil || len(*messages) != 2 {
 			t.Errorf("data inconsistent, the length of response should be %d", 2)
+		}
+
+		if int(totalCount) != len(*messages) {
+			t.Errorf("count inconsistent, total count:%v, expected count:%v", totalCount, len(*messages))
+		}
+
+		msgs := *messages
+		if !compare(msgs[0], *messageData1) {
+			t.Errorf("data inconsistent, origin:%+v, new:%+v", msgs[0], *messageData1)
+		}
+		if !compare(msgs[1], *messageData2) {
+			t.Errorf("data inconsistent, origin:%+v, new:%+v", msgs[1], *messageData2)
 		}
 	})
 }

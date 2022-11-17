@@ -106,19 +106,23 @@ func Test_messageUsecase_GetByUserID(t *testing.T) {
 	fakeError := errors.New("fake error")
 	gomock.InOrder(
 		//context arguments would be treated as different even if they are the same type.
-		mockRepository.EXPECT().GetByUserID(gomock.Any(), userIDs).Return(&fakeMessages, nil),
-		mockRepository.EXPECT().GetByUserID(gomock.Any(), userIDs).Return(nil, fakeError),
+		mockRepository.EXPECT().GetByUserID(gomock.Any(), int64(0), int64(20), userIDs).Return(&fakeMessages, int64(len(fakeMessages)), nil),
+		mockRepository.EXPECT().GetByUserID(gomock.Any(), int64(0), int64(20), userIDs).Return(nil, int64(0), fakeError),
 	)
 
 	usecase := NewMessageUsecase(mockRepository, mockProvider, timeout)
 
-	messages, err := usecase.GetByUserID(backgroundCtx, userIDs...)
+	messages, totalCount, err := usecase.GetByUserID(backgroundCtx, 0, 20, userIDs...)
 	if err != nil {
 		t.Errorf("unexpected error:%v", err)
 	}
-	if messages == nil || len(*messages) != 2 {
+	if messages == nil || len(*messages) != len(fakeMessages) {
 		t.Errorf("data inconsistent, messages:%v, expected message:%v", messages, fakeMessages)
 	}
+	if int(totalCount) != len(fakeMessages) {
+		t.Errorf("count inconsistent, total count:%v, expected count:%v", totalCount, len(fakeMessages))
+	}
+
 	for i, message := range *messages {
 		target := fakeMessages[i]
 
@@ -127,7 +131,7 @@ func Test_messageUsecase_GetByUserID(t *testing.T) {
 		}
 	}
 
-	_, err = usecase.GetByUserID(backgroundCtx, userIDs...)
+	_, _, err = usecase.GetByUserID(backgroundCtx, 0, 20, userIDs...)
 	if err.Error() != fakeError.Error() {
 		t.Errorf("error inconsistent, caught error:%v, expected error:%v", err, fakeError)
 	}
