@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -83,5 +85,86 @@ func TestMessageHandler_GetMessages(t *testing.T) {
 		if !reflect.DeepEqual(m, fakeMessage) {
 			t.Errorf("data inconsistent, type:%v, expected type:%v", m, fakeMessage)
 		}
+	}
+}
+
+func TestMessageHandler_PostMessages(t *testing.T) {
+	ctl := gomock.NewController(t)
+	defer ctl.Finish()
+
+	fakeMessage := "fake message"
+	fakeError := errors.New("fake error")
+	validBody, err := json.Marshal(map[string]string{
+		"message": fakeMessage,
+	})
+	if err != nil {
+		t.FailNow()
+	}
+	invalidBody, err := json.Marshal(map[string]string{})
+
+	if err != nil {
+		t.FailNow()
+	}
+
+	mockUsecase := mockDomain.NewMockMessageUsecase(ctl)
+	gomock.InOrder(
+		mockUsecase.EXPECT().Send(fakeMessage).Return(nil),
+		mockUsecase.EXPECT().Send(fakeMessage).Return(fakeError),
+	)
+
+	e := gin.New()
+	NewMessageHandler(e, mockUsecase)
+
+	cases := []struct {
+		name     string
+		arg      []byte
+		success  bool
+		httpCode int
+		err      string
+	}{
+		{
+			name:     "post success",
+			arg:      validBody,
+			success:  true,
+			httpCode: http.StatusCreated,
+		},
+		{
+			name:     "post failed because send message failed",
+			arg:      validBody,
+			success:  false,
+			httpCode: http.StatusInternalServerError,
+			err:      fakeError.Error(),
+		},
+		{
+			name:     "post failed because body is invalid",
+			arg:      invalidBody,
+			success:  false,
+			httpCode: http.StatusBadRequest,
+			err:      "Key: 'Message' Error:Field validation for 'Message' failed on the 'required' tag",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req, _ := http.NewRequest("POST", "/messages", bytes.NewBuffer(c.arg))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			e.ServeHTTP(w, req)
+
+			if w.Code != c.httpCode {
+				t.Errorf("code inconsistent, code:%v, expected code:%v", w.Code, c.httpCode)
+			}
+			var response map[string]interface{}
+			json.Unmarshal(w.Body.Bytes(), &response)
+			if c.success {
+				if response["status"] != "OK" {
+					t.Errorf("response inconsistent, response:%v, expected response:%v", response["status"], "OK")
+				}
+			} else {
+				if response["error"] != c.err {
+					t.Errorf("response inconsistent, response:%v, expected response:%v", response["error"], c.err)
+				}
+			}
+		})
 	}
 }

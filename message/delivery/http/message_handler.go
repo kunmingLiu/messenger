@@ -16,11 +16,36 @@ type MessageHandler struct {
 	MessageUsecase domain.MessageUsecase
 }
 
+func success() gin.H {
+	return gin.H{"status": "OK"}
+}
+
 func NewMessageHandler(e *gin.Engine, ms domain.MessageUsecase) {
 	handler := &MessageHandler{
 		MessageUsecase: ms,
 	}
-	e.GET("/messages", handler.GetMessages)
+
+	messageGroup := e.Group("/messages")
+	messageGroup.GET("", handler.GetMessages)
+	messageGroup.POST("", handler.PostMessages)
+}
+
+func (m *MessageHandler) PostMessages(c *gin.Context) {
+	var body struct {
+		Message string `json:"message" binding:"required"`
+	}
+
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+		return
+	}
+
+	err := m.MessageUsecase.Send(body.Message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ResponseError{Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, success())
 }
 
 func (m *MessageHandler) GetMessages(c *gin.Context) {
