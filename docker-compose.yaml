@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  database:
+    image: mongo:4.4
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - "./db:/data/db"
+  gui:
+    image: ugleiton/mongo-gui
+    restart: unless-stopped
+    depends_on:
+      - database
+    ports:
+      - "4321:4321"
+    environment:
+      - MONGO_URL=mongodb://root:example@database:27017

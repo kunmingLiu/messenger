@@ -1,0 +1,10 @@
+line:
+  secret: "<secret>"
+  token: "<token>"
+server:
+  port: 8080
+db:
+  user: "root"
+  password: "example"
+  host: "localhost"
+  port: "27017"
