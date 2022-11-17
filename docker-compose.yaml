@@ -10,7 +10,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=example
     volumes:
-      - "./db:/data/db"
+      - "./data/db:/data/db"
   gui:
     image: ugleiton/mongo-gui
     restart: unless-stopped
